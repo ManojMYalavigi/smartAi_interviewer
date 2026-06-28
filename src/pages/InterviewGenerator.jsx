@@ -33,20 +33,28 @@ export default function InterviewGenerator() {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
       setIsVideoActive(false);
+      streamRef.current = null;
     } else {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
-        streamRef.current = stream;
         setIsVideoActive(true);
       } catch (err) {
         console.error("Webcam access denied", err);
-        alert("Camera access is required for the Ruthless AI Interview.");
+        alert("Camera access is required for the AI Interviewer.");
       }
     }
   };
+
+  // Ensure video stream connects after phase changes to active
+  useEffect(() => {
+    if (phase === 'active' && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [phase]);
 
   // Setup Speech Recognition
   useEffect(() => {
@@ -317,12 +325,48 @@ export default function InterviewGenerator() {
                />
                <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,0.6)', padding: '0.25rem 0.75rem', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} className="pulse-glow-element" />
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>LIVE TRACKING ACTIVE</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>GESTURE TRACKING ACTIVE</span>
                </div>
                
-               {/* Overlay HUD simulating face mesh/body tracking */}
-               <div style={{ position: 'absolute', inset: 0, border: '2px solid rgba(16, 185, 129, 0.2)', pointerEvents: 'none' }}>
-                  <div style={{ position: 'absolute', top: '40%', left: '40%', right: '40%', bottom: '40%', border: '1px dashed rgba(255,255,255,0.3)', borderRadius: '50%' }} />
+               {/* Overlay HUD simulating advanced face mesh/body tracking */}
+               <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}>
+                  {/* Scanning line */}
+                  <div style={{ 
+                     position: 'absolute', top: 0, left: 0, right: 0, height: '2px', 
+                     background: 'rgba(16, 185, 129, 0.5)', 
+                     boxShadow: '0 0 10px rgba(16, 185, 129, 0.8)',
+                     animation: 'scan-vertical 3s linear infinite' 
+                  }} />
+                  
+                  {/* Face box tracker */}
+                  <div style={{ 
+                     position: 'absolute', top: '25%', left: '30%', right: '30%', bottom: '25%', 
+                     border: '1.5px solid rgba(16, 185, 129, 0.4)', 
+                     borderRadius: '20px',
+                     boxShadow: 'inset 0 0 20px rgba(16, 185, 129, 0.1)'
+                  }}>
+                     {/* Corner brackets */}
+                     <div style={{ position: 'absolute', top: '-2px', left: '-2px', width: '20px', height: '20px', borderTop: '3px solid #10b981', borderLeft: '3px solid #10b981' }} />
+                     <div style={{ position: 'absolute', top: '-2px', right: '-2px', width: '20px', height: '20px', borderTop: '3px solid #10b981', borderRight: '3px solid #10b981' }} />
+                     <div style={{ position: 'absolute', bottom: '-2px', left: '-2px', width: '20px', height: '20px', borderBottom: '3px solid #10b981', borderLeft: '3px solid #10b981' }} />
+                     <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '20px', height: '20px', borderBottom: '3px solid #10b981', borderRight: '3px solid #10b981' }} />
+                  </div>
+
+                  {/* Warning Overlay */}
+                  {metrics.bodyLanguageViolations > 0 && (
+                     <div style={{
+                        position: 'absolute', inset: 0,
+                        border: '4px solid rgba(239, 68, 68, 0.6)',
+                        boxShadow: 'inset 0 0 50px rgba(239, 68, 68, 0.2)',
+                        animation: 'pulse 2s infinite',
+                        display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', padding: '1rem'
+                     }}>
+                        <div style={{ background: 'rgba(239, 68, 68, 0.9)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                           <AlertTriangle size={12} />
+                           POSTURE WARNING DETECTED
+                        </div>
+                     </div>
+                  )}
                </div>
              </div>
 
@@ -368,6 +412,12 @@ export default function InterviewGenerator() {
       {phase === 'report' && renderReport()}
 
       <style>{`
+        @keyframes scan-vertical {
+          0% { top: 0%; opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { top: 100%; opacity: 0; }
+        }
         @media (max-width: 900px) {
           .interview-grid {
             grid-template-columns: 1fr !important;
