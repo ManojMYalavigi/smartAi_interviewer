@@ -49,6 +49,17 @@ export default function InterviewGenerator() {
     }
   };
 
+  // Auto-start on mount
+  useEffect(() => {
+    if (phase === 'setup') {
+      // Small delay to ensure component is fully mounted before requesting permissions
+      const timer = setTimeout(() => {
+        startInterview();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   // Ensure video stream connects after phase changes to active
   useEffect(() => {
     if (phase === 'active' && videoRef.current && streamRef.current) {
@@ -135,9 +146,13 @@ export default function InterviewGenerator() {
     if (!isVideoActive) {
       await toggleWebcam();
     }
-    // Randomize 10 questions
+    // Randomize 9 questions and prepend the role question
     const shuffled = [...questionsData].sort(() => 0.5 - Math.random());
-    setQuestions(shuffled.slice(0, 10));
+    const finalQuestions = [
+      { question: "Which role are you targeting?", answer: "Any clear and professional job title." },
+      ...shuffled.slice(0, 9)
+    ];
+    setQuestions(finalQuestions);
     setCurrentIdx(0);
     setMetrics({ fillerWords: 0, startTime: Date.now(), totalWords: 0, bodyLanguageViolations: 0, answers: [] });
     setPhase('active');
@@ -168,8 +183,11 @@ export default function InterviewGenerator() {
   }, [phase, currentIdx, questions]);
 
   const nextQuestion = () => {
-    // Save current answer
+    // Save current answer (only count words if transcript is somewhat valid)
     const currentWords = transcript.split(' ').filter(w => w.trim().length > 0).length;
+    
+    // If it was the first question ("Which role are you targeting?"), we could dynamically adjust future questions, but for now just proceed
+    
     setMetrics(prev => ({
         ...prev,
         totalWords: prev.totalWords + currentWords,
@@ -253,9 +271,13 @@ export default function InterviewGenerator() {
           </div>
 
           <div className="glass-card" style={{ background: 'rgba(0,0,0,0.2)' }}>
-             <h4 style={{ color: 'var(--accent-tertiary)', marginBottom: '0.5rem' }}>Body Language</h4>
+             <h4 style={{ color: 'var(--accent-tertiary)', marginBottom: '0.5rem' }}>Gesture Analysis</h4>
              <span style={{ fontSize: '2rem', fontWeight: 700 }}>{metrics.bodyLanguageViolations} Warnings</span>
-             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Looking away or slouching. {metrics.bodyLanguageViolations > 3 ? "Eye contact is critical. You failed this." : "Confident posture."}</p>
+             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                {metrics.bodyLanguageViolations > 3 
+                  ? "Static gesture / poor gesture detected. You lacked engagement." 
+                  : "Hand movement with confidence. A good gesture detected!"}
+             </p>
           </div>
         </div>
 
@@ -296,17 +318,11 @@ export default function InterviewGenerator() {
     <div style={{ padding: '1rem', height: '100%' }}>
       {phase === 'setup' && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '70vh', gap: '2rem' }}>
-          <ShieldAlert size={64} style={{ color: 'var(--accent-primary)' }} />
-          <h1 style={{ fontSize: '3rem', fontWeight: 800 }}>AI Interviewer</h1>
+          <ShieldAlert size={64} style={{ color: 'var(--accent-primary)' }} className="pulse-glow-element" />
+          <h1 style={{ fontSize: '3rem', fontWeight: 800 }}>Initializing Interview...</h1>
           <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', maxWidth: '500px', textAlign: 'center' }}>
-            This simulator will demand access to your microphone and camera. It will track your eye movement, measure your speaking pace, and evaluate your technical accuracy. 
-            <br/><br/><strong>Are you ready?</strong>
+            Requesting camera and microphone access. Please allow permissions when prompted by your browser to begin.
           </p>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button className="btn btn-primary" style={{ padding: '1rem 2rem', fontSize: '1.2rem' }} onClick={startInterview}>
-              Start Interview
-            </button>
-          </div>
         </div>
       )}
 
