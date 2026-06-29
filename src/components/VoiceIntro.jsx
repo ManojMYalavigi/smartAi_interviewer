@@ -48,9 +48,8 @@ export default function VoiceIntro({ onComplete }) {
       
       recognitionRef.current.onend = () => {
          // If ended but not completed phase, maybe retry or timeout.
-         if (phase === 'listening' && !role) {
-             // Fallback
-             setTimeout(() => handleRoleSelected('Software Engineer'), 2000);
+         if (phase === 'input' && !role) {
+             // Let them keep typing, do not auto-force a role!
          }
       };
     } else {
@@ -81,18 +80,18 @@ export default function VoiceIntro({ onComplete }) {
   };
 
   const startSequence = () => {
-    setPhase('asking');
-    speak("Which role are you targeting?", () => {
-      setPhase('listening');
-      if (recognitionRef.current) {
-          try {
-            recognitionRef.current.start();
-          } catch(e) {
-              console.error(e);
-              handleRoleSelected('Software Engineer');
-          }
-      }
-    });
+    setPhase('input');
+    // Try speaking, but don't block on it
+    speak("Which role are you targeting?");
+    
+    // Try to auto-start microphone
+    if (recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+        } catch(e) {
+            console.error("Auto mic blocked:", e);
+        }
+    }
   };
 
   const handleRoleSelected = (detectedRole) => {
@@ -196,33 +195,42 @@ export default function VoiceIntro({ onComplete }) {
                 </motion.div>
             )}
 
-            {phase === 'asking' && (
+            {phase === 'input' && (
                 <motion.div
-                   key="asking"
+                   key="input"
                    initial={{ opacity: 0, scale: 0.9 }}
                    animate={{ opacity: 1, scale: 1 }}
                    exit={{ opacity: 0 }}
+                   style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'center' }}
                 >
                     <h1 style={{ fontSize: '3rem', fontWeight: 600, letterSpacing: '-0.03em' }}>
                         Which role are you targeting?
                     </h1>
-                </motion.div>
-            )}
-
-            {phase === 'listening' && (
-                <motion.div
-                   key="listening"
-                   initial={{ opacity: 0 }}
-                   animate={{ opacity: 1 }}
-                   exit={{ opacity: 0 }}
-                   style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'center' }}
-                >
-                    <h1 style={{ fontSize: '3rem', fontWeight: 600, opacity: 0.7 }}>
-                        Listening...
-                    </h1>
-                    <p style={{ fontSize: '1.5rem', color: 'var(--primary-color)', minHeight: '40px' }}>
-                        {transcript || "Speak now..."}
-                    </p>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(255,255,255,0.1)', padding: '0.5rem 1rem', borderRadius: '50px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                       <input 
+                         autoFocus
+                         type="text" 
+                         value={transcript}
+                         onChange={(e) => setTranscript(e.target.value)}
+                         onKeyDown={(e) => {
+                             if(e.key === 'Enter' && transcript.trim()) {
+                                 handleRoleSelected(transcript.trim());
+                             }
+                         }}
+                         placeholder="Type here or speak..." 
+                         style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '1.2rem', outline: 'none', minWidth: '300px' }}
+                       />
+                       <button 
+                         onClick={() => {
+                             if(transcript.trim()) handleRoleSelected(transcript.trim());
+                         }}
+                         style={{ background: 'var(--accent-primary)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                       >
+                         →
+                       </button>
+                    </div>
+                    <p style={{ fontSize: '0.9rem', opacity: 0.5 }}>Microphone is active. Speak or type your role.</p>
                 </motion.div>
             )}
 
