@@ -62,7 +62,7 @@ export default function InterviewGenerator() {
 
   // Ensure video stream connects after phase changes to active
   useEffect(() => {
-    if (phase === 'active' && videoRef.current && streamRef.current) {
+    if ((phase === 'active' || phase === 'report') && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
     }
   }, [phase]);
@@ -204,10 +204,7 @@ export default function InterviewGenerator() {
   const finishInterview = () => {
     try { recognitionRef.current.stop(); } catch(e) {}
     setIsRecording(false);
-    if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-    }
-    setIsVideoActive(false);
+    // Deliberately keeping the stream active for the report phase!
     
     // Save last answer
     const currentWords = transcript.split(' ').filter(w => w.trim().length > 0).length;
@@ -326,7 +323,7 @@ export default function InterviewGenerator() {
         </div>
       )}
 
-      {phase === 'active' && questions.length > 0 && (
+      {(phase === 'active' || phase === 'report') && questions.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', height: '75vh' }} className="interview-grid">
           
           {/* Left Column: Media feeds */}
@@ -398,34 +395,38 @@ export default function InterviewGenerator() {
              </div>
           </div>
 
-          {/* Right Column: Q&A */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="glass-card" style={{ padding: '2rem', borderLeft: '4px solid var(--accent-primary)' }}>
-              <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1rem' }}>
-                Question {currentIdx + 1} of {questions.length}
-              </h3>
-              <h2 style={{ fontSize: '1.5rem', lineHeight: 1.4 }}>
-                {questions[currentIdx].question}
-              </h2>
-            </div>
+          {/* Right Column: Q&A or Report */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto' }}>
+            {phase === 'active' ? (
+              <>
+                <div className="glass-card" style={{ padding: '2rem', borderLeft: '4px solid var(--accent-primary)' }}>
+                  <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1rem' }}>
+                    Question {currentIdx + 1} of {questions.length}
+                  </h3>
+                  <h2 style={{ fontSize: '1.5rem', lineHeight: 1.4 }}>
+                    {questions[currentIdx].question}
+                  </h2>
+                </div>
 
-            <div className="glass-card" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-               <h3 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Live Transcription</h3>
-               <div style={{ flex: 1, fontSize: '1.1rem', lineHeight: 1.6, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
-                 {transcript || <span style={{ opacity: 0.5 }}>Speak clearly into the microphone. Silence is being penalized.</span>}
-               </div>
-               
-               <div style={{ marginTop: 'auto', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-                 <button className="btn btn-secondary" onClick={nextQuestion}>
-                   {currentIdx < questions.length - 1 ? 'Next Question' : 'Finish Interview'}
-                 </button>
-               </div>
-            </div>
+                <div className="glass-card" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+                   <h3 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Live Transcription</h3>
+                   <div style={{ flex: 1, fontSize: '1.1rem', lineHeight: 1.6, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
+                     {transcript || <span style={{ opacity: 0.5 }}>Speak clearly into the microphone. Silence is being penalized.</span>}
+                   </div>
+                   
+                   <div style={{ marginTop: 'auto', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                     <button className="btn btn-secondary" onClick={nextQuestion}>
+                       {currentIdx < questions.length - 1 ? 'Next Question' : 'Finish Interview'}
+                     </button>
+                   </div>
+                </div>
+              </>
+            ) : (
+              renderReport()
+            )}
           </div>
         </div>
       )}
-
-      {phase === 'report' && renderReport()}
 
       <style>{`
         @keyframes scan-vertical {

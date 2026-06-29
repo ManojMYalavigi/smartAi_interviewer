@@ -8,6 +8,16 @@ export default function VoiceIntro({ onComplete }) {
   const canvasRef = useRef(null);
   const recognitionRef = useRef(null);
 
+  // Auto start
+  useEffect(() => {
+    if (phase === 'initial') {
+      const timer = setTimeout(() => {
+        startSequence();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [phase]);
+
   // Initialize Speech Recognition
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -182,13 +192,7 @@ export default function VoiceIntro({ onComplete }) {
                    animate={{ opacity: 1, y: 0 }}
                    exit={{ opacity: 0, y: -20 }}
                 >
-                    <button 
-                        className="btn btn-primary" 
-                        onClick={startSequence}
-                        style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', borderRadius: '30px' }}
-                    >
-                        Initialize
-                    </button>
+                   {/* Auto-starting... */}
                 </motion.div>
             )}
 
